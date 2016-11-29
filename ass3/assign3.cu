@@ -31,6 +31,27 @@ const int mask = (1 << numBits) - 1;
 const int numThreads = 128;
 const int numBlocks = 512;
 
+void join_cpu(int *key1, float *value1, int *key2, float *value2,int N1,int N2,int *result){
+    for(int i = 0; i < N1; i++){
+        result[i] = -1;
+        for(int j = 0; j < N2; j++){
+            if(key1[i] == key2[j]){
+                result[i] = j;
+            }
+        }
+    }
+}
+
+bool check(int *res1, int *res2, int N){
+    for(int i = 0; i < N; i++){
+        if(res1[i] != res2[i]){
+            printf("Wrong! res1[%d]: %d, res2[%d]: %d\n", i, res1[i], i, res2[i]);
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
  return the partition ID of the input element
  */
@@ -199,7 +220,7 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
 	int blockIdx = blockDim.x;
 
-	//copy each bucket information into shared memory. 
+	//copy each bucket information into shared memory.
 	//each block is responsible for each thread
 	startPos1 = d_startPos1[blockIdx];
 	startPos2 = d_startPos2[blockIdx];
@@ -233,7 +254,7 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 				result_tmp = startPos2+i;
 				printf("%d at %d\n", startPos2+i, result_tmp);
 			}
-			
+
 		}
 	}
 	d_result[startPos1+tx] = result_tmp;
@@ -319,6 +340,7 @@ int main(int argc, char** argv) {
 	h_value1 = (float*) malloc(N1 * sizeof(float));
 	h_value2 = (float*) malloc(N2 * sizeof(float));
 	h_result = (int*) malloc(N1 * sizeof(int));
+	h_result_base = (int*)malloc(N1 * sizeof(int));
 
 	cudaMalloc(&d_key1, N1 * sizeof(int));
 	cudaMalloc(&d_key2, N2 * sizeof(int));
@@ -335,6 +357,8 @@ int main(int argc, char** argv) {
 		h_value2[i] = v2[i];
 	}
 
+	join_cpu(h_key1, h_value1, h_key2, h_value2, N1, N2, h_result_base);
+
 	memset(h_result, -1, sizeof(int) * N1);
 	cudaMemcpy(d_key1, h_key1, sizeof(int) * N1, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_result, h_result, sizeof(int) * N1, cudaMemcpyHostToDevice);
@@ -349,6 +373,12 @@ int main(int argc, char** argv) {
 	cudaMemcpy(h_key2, d_key2, sizeof(int) * N2, cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_value1, d_value1, sizeof(float) * N1, cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_value2, d_value2, sizeof(float) * N2, cudaMemcpyDeviceToHost);
+
+	if(check(h_result_base, h_result, N1)){
+			printf("HashJoin correct!\n");
+	}else{
+			printf("HashJoin error!\n");
+	}
 
 	int matched = 0;
 	freopen("out.txt", "w", stdout);
