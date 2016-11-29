@@ -1,0 +1,2 @@
+nvcc exercise.cu -run
+
