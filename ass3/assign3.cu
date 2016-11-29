@@ -46,7 +46,7 @@ bool check(int *res1, int *res2, int N){
     for(int i = 0; i < N; i++){
         if(res1[i] != res2[i]){
             printf("Wrong! res1[%d]: %d, res2[%d]: %d\n", i, res1[i], i, res2[i]);
-            return false;
+            //return false;
         }
     }
     return true;
@@ -214,14 +214,13 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	/*
 		Oh my dear heterogeneous god,
 		Do not let my code fall into sin of random undebuggable bugs
-		But let your parallelism lead our final journey of CUDA in glory
 	*/
 	int tx = threadIdx.x;
 	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
 	int blockIdx = blockDim.x;
 
 	//copy each bucket information into shared memory.
-	//each block is responsible for each thread
+	//each block is responsible for each bucket 
 	startPos1 = d_startPos1[blockIdx];
 	startPos2 = d_startPos2[blockIdx];
 	if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
@@ -229,33 +228,36 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 		endPos2 = N2;
 	} else {	// else, endPos is startPos of next bucket
 		endPos1 = d_startPos1[blockIdx+1];
-		endPos2 = d_startPos2[blockIdx+2];
+		endPos2 = d_startPos2[blockIdx+1];
 	}
 	numOfThisPart1 = endPos1 - startPos1;
 	numOfThisPart2 = endPos2 - startPos2;
 	// load each buckets of array 2 into shared memory and synchronize
-	/*for (int i=0; i<numOfThisPart1; ++i) {
-		s_key[i] = d_key2[i+startPos];
-	}*/
-	if (tx < numOfThisPart2) {
-		s_key[tx] = d_key2[tx+startPos2];
+	for (int i=0; i<numOfThisPart2; ++i) {
+		s_key[i] = d_key2[i+startPos2];
 	}
+	/*if (tx < numOfThisPart2) {
+		s_key[tx] = d_key2[tx+startPos2];
+	}*/
 	__syncthreads();
 
 	// each thread is now responsible for each element in the bucket.
+	if (tx>=numOfThisPart1) {
+		return;
+	}
 	int d_key_tmp = 0;
 	int result_tmp = -1;
-	if (tx<numOfThisPart1) {
-		d_key_tmp = d_key1[startPos1+tx];
-	}
+	//if (tx<numOfThisPart1) {
+	d_key_tmp = d_key1[startPos1+tx];
+	//}
 	for (int i=0; i<numOfThisPart2; ++i) {
-		if (tx<numOfThisPart1) {
+		//if (tx<numOfThisPart1) {
 			if (d_key_tmp == s_key[i]) {
 				result_tmp = startPos2+i;
 				printf("%d at %d\n", startPos2+i, result_tmp);
 			}
 
-		}
+		//}
 	}
 	d_result[startPos1+tx] = result_tmp;
 
@@ -297,6 +299,7 @@ int main(int argc, char** argv) {
 	float *h_value1, *h_value2, *d_value1, *d_value2;
 	int *h_result, *d_result;
 	int N1, N2;
+	int *h_result_base;
 
 	std::vector<int> k1, k2;
 	std::vector<float> v1, v2;
@@ -357,8 +360,10 @@ int main(int argc, char** argv) {
 		h_value2[i] = v2[i];
 	}
 
+	printf("cpu_join()...");
 	join_cpu(h_key1, h_value1, h_key2, h_value2, N1, N2, h_result_base);
 
+	printf("gpu_join()...");
 	memset(h_result, -1, sizeof(int) * N1);
 	cudaMemcpy(d_key1, h_key1, sizeof(int) * N1, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_result, h_result, sizeof(int) * N1, cudaMemcpyHostToDevice);
