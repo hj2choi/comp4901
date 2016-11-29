@@ -215,12 +215,40 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 		Oh my dear heterogeneous god,
 		Do not let my code fall into sin of random undebuggable bugs
 	*/
+
+
+
 	int tx = threadIdx.x;
 	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
 	int blockIdx = blockDim.x;
 
+  int start1 = d_startPos1[blockIdx];
+  int start2 = d_startPos2[blockIdx];
+  int end1;
+  int end2;
+  if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
+		end1 = N1;
+		end2 = N2;
+	} else {	// else, endPos is startPos of next bucket
+		end1 = d_startPos1[blockIdx+1];
+		end2 = d_startPos2[blockIdx+1];
+	}
+
+  //int numOfThisPart2 = end2 - start2;
+  if (tx>=(end1-start1)) {
+    return;
+  }
+  int result = -1;
+  for (int i=start2; i<end2; ++i) {
+    if (d_key1[start1+tx] == d_key2[i]) {
+      result = i;
+    }
+  }
+  d_result[start1+tx] = result;
+
+  /*
 	//copy each bucket information into shared memory.
-	//each block is responsible for each bucket 
+	//each block is responsible for each bucket
 	startPos1 = d_startPos1[blockIdx];
 	startPos2 = d_startPos2[blockIdx];
 	if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
@@ -236,9 +264,9 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	for (int i=0; i<numOfThisPart2; ++i) {
 		s_key[i] = d_key2[i+startPos2];
 	}
-	/*if (tx < numOfThisPart2) {
-		s_key[tx] = d_key2[tx+startPos2];
-	}*/
+	//if (tx < numOfThisPart2) {
+	//	s_key[tx] = d_key2[tx+startPos2];
+	//}
 	__syncthreads();
 
 	// each thread is now responsible for each element in the bucket.
@@ -259,7 +287,7 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 
 		//}
 	}
-	d_result[startPos1+tx] = result_tmp;
+	d_result[startPos1+tx] = result_tmp;*/
 
 }
 
