@@ -190,6 +190,53 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	__shared__ int numOfThisPart1, numOfThisPart2;
 
 	/* add your code here */
+	/*
+		Oh my dear heterogeneous god,
+		Do not let my code fall into sin of random undebuggable bugs
+		But let your parallelism lead our final journey of CUDA in glory
+	*/
+	int tx = threadIdx.x;
+	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
+	int blockIdx = blockDim.x;
+
+	//copy each bucket information into shared memory. 
+	//each block is responsible for each thread
+	startPos1 = d_startPos1[blockIdx];
+	startPos2 = d_startPos2[blockIdx];
+	if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
+		endPos1 = N1;
+		endPos2 = N2;
+	} else {	// else, endPos is startPos of next bucket
+		endPos1 = d_startPos1[blockIdx+1];
+		endPos2 = d_startPos2[blockIdx+2];
+	}
+	numOfThisPart1 = endPos1 - startPos1;
+	numOfThisPart2 = endPos2 - startPos2;
+	// load each buckets of array 2 into shared memory and synchronize
+	/*for (int i=0; i<numOfThisPart1; ++i) {
+		s_key[i] = d_key2[i+startPos];
+	}*/
+	if (tx < numOfThisPart2) {
+		s_key[tx] = d_key2[tx+startPos2];
+	}
+	__syncthreads();
+
+	// each thread is now responsible for each element in the bucket.
+	int d_key_tmp = 0;
+	int result_tmp = -1;
+	if (tx<numOfThisPart1) {
+		d_key_tmp = d_key1[startPos1+tx];
+	}
+	for (int i=0; i<numOfThisPart2; ++i) {
+		if (tx<numOfThisPart1) {
+			if (d_key_tmp == s_key[i]) {
+				result_tmp = startPos2+i;
+				printf("%d at %d\n", startPos2+i, result_tmp);
+			}
+			
+		}
+	}
+	d_result[startPos1+tx] = result_tmp;
 
 }
 
