@@ -226,7 +226,7 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
   int start2 = d_startPos2[blockIdx];
   int end1;
   int end2;
-  if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
+  if (blockIdx+1==gridDim.x) {	// if we are looking at last bucket, endPosition is basically a length of array
 		end1 = N1;
 		end2 = N2;
 	} else {	// else, endPos is startPos of next bucket
@@ -289,6 +289,11 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	}
 	d_result[startPos1+tx] = result_tmp;*/
 
+}
+
+void cpu_hashJoin(int *d_result, int *d_key1, float *d_value1, int *d_key2,
+		float *d_value2, int N1, int N2) {
+      
 }
 
 void hashJoin(int *d_result, int *d_key1, float *d_value1, int *d_key2,
