@@ -233,26 +233,30 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 		numOfThisPart1 = endPos1 - startPos1;
 		numOfThisPart2 = endPos2 - startPos2;
 
-    // load each buckets of array 2 into shared memory and synchronize
-		for (int i=0; i<numOfThisPart2; ++i) {
-			s_key[i] = d_key2[startPos2+i];
-		}
 	}
+  __syncthreads();
+  // load each buckets of array 2 into shared memory and synchronize
+  for (int i=tx; i<numOfThisPart2; ++bx) {
+    s_key[i] = d_key2[startPos2+i];
+  }
 	__syncthreads();
 	// each thread is now responsible for each element in the bucket.
-	if (tx>=numOfThisPart1) {
-		return;
-	}
-	int result_tmp = -1;
-	int d_key_tmp = d_key1[startPos1+tx];
+	//if (tx>=numOfThisPart1) {
+	//	return;
+	//}
+  // since input size can be larger than the number of threads....
+  for (int i=tx; i<numOfThisPart1; i = i+bx) {
 
-	// for each element in bucket 1, search for matching element in bucket 2
-	for (int i=0; i<numOfThisPart2; ++i) {
-		if (d_key_tmp == s_key[i]) {
-			result_tmp = startPos2+i;
-		}
-	}
-	d_result[startPos1+tx] = result_tmp;
+  	int result_tmp = -1;
+  	int d_key_tmp = d_key1[startPos1+i];
+    // for each element in bucket 1, search for matching element in bucket 2
+    for (int j=0; i<numOfThisPart2; ++j) {
+  		if (d_key_tmp == s_key[j]) {
+  			result_tmp = startPos2+j;
+  		}
+  	}
+  	d_result[startPos1+i] = result_tmp;
+  }
 
 }
 
