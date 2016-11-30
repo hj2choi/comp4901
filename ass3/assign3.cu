@@ -219,11 +219,10 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 
 
 	int tx = threadIdx.x;
-	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
 	//int blockIdx = blockDim.x;
   int bx = blockIdx.x;
 
-  int start1 = d_startPos1[bx];
+  /*int start1 = d_startPos1[bx];
   int start2 = d_startPos2[bx];
   int end1;
   int end2;
@@ -245,29 +244,30 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
       result = i;
     }
   }
-  d_result[start1+tx] = result;
+  d_result[start1+tx] = result;*/
 
-  /*
 	//copy each bucket information into shared memory.
 	//each block is responsible for each bucket
-	startPos1 = d_startPos1[blockIdx];
-	startPos2 = d_startPos2[blockIdx];
-	if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
-		endPos1 = N1;
-		endPos2 = N2;
-	} else {	// else, endPos is startPos of next bucket
-		endPos1 = d_startPos1[blockIdx+1];
-		endPos2 = d_startPos2[blockIdx+1];
-	}
-	numOfThisPart1 = endPos1 - startPos1;
-	numOfThisPart2 = endPos2 - startPos2;
+  if (tx == 0) {
+    startPos1 = d_startPos1[bx];
+    startPos2 = d_startPos2[bx];
+    if (bx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
+      endPos1 = N1;
+      endPos2 = N2;
+    } else {	// else, endPos is startPos of next bucket
+      endPos1 = d_startPos1[bx+1];
+      endPos2 = d_startPos2[bx+1];
+    }
+    numOfThisPart1 = endPos1 - startPos1;
+    numOfThisPart2 = endPos2 - startPos2;
+  }
 	// load each buckets of array 2 into shared memory and synchronize
-	for (int i=0; i<numOfThisPart2; ++i) {
+	/*for (int i=0; i<numOfThisPart2; ++i) {
 		s_key[i] = d_key2[i+startPos2];
+	}*/
+	if (tx < numOfThisPart2) {
+		s_key[tx] = d_key2[startPos2+tx];
 	}
-	//if (tx < numOfThisPart2) {
-	//	s_key[tx] = d_key2[tx+startPos2];
-	//}
 	__syncthreads();
 
 	// each thread is now responsible for each element in the bucket.
@@ -279,16 +279,17 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	//if (tx<numOfThisPart1) {
 	d_key_tmp = d_key1[startPos1+tx];
 	//}
+
+  // for each element in bucket 1, search for matching element in bucket 2
 	for (int i=0; i<numOfThisPart2; ++i) {
 		//if (tx<numOfThisPart1) {
 			if (d_key_tmp == s_key[i]) {
 				result_tmp = startPos2+i;
-				printf("%d at %d\n", startPos2+i, result_tmp);
 			}
 
 		//}
 	}
-	d_result[startPos1+tx] = result_tmp;*/
+	d_result[startPos1+tx] = result_tmp;
 
 }
 
@@ -406,9 +407,6 @@ int main(int argc, char** argv) {
 		h_value2[i] = v2[i];
 	}
 
-	printf("cpu_join()...");
-	join_cpu(h_key1, h_value1, h_key2, h_value2, N1, N2, h_result_base);
-
 	printf("gpu_join()...");
 	memset(h_result, -1, sizeof(int) * N1);
 	cudaMemcpy(d_key1, h_key1, sizeof(int) * N1, cudaMemcpyHostToDevice);
@@ -424,12 +422,6 @@ int main(int argc, char** argv) {
 	cudaMemcpy(h_key2, d_key2, sizeof(int) * N2, cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_value1, d_value1, sizeof(float) * N1, cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_value2, d_value2, sizeof(float) * N2, cudaMemcpyDeviceToHost);
-
-	if(check(h_result_base, h_result, N1)){
-			printf("HashJoin correct!\n");
-	}else{
-			printf("HashJoin error!\n");
-	}
 
 	int matched = 0;
 	freopen("out.txt", "w", stdout);
