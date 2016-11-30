@@ -236,7 +236,7 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	}
   __syncthreads();
   // load each buckets of array 2 into shared memory and synchronize
-  for (int i=tx; i<numOfThisPart2; ++bx) {
+  for (int i=tx; i<numOfThisPart2; i+=bx) {
     s_key[i] = d_key2[startPos2+i];
   }
 	__syncthreads();
