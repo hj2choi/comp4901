@@ -231,38 +231,26 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 			endPos2 = d_startPos2[bx+1];
 		}
 		numOfThisPart1 = endPos1 - startPos1;
-    		numOfThisPart2 = endPos2 - startPos2;
+		numOfThisPart2 = endPos2 - startPos2;
+
+    // load each buckets of array 2 into shared memory and synchronize
 		for (int i=0; i<numOfThisPart2; ++i) {
 			s_key[i] = d_key2[startPos2+i];
 		}
 	}
-	// load each buckets of array 2 into shared memory and synchronize
-	/*for (int i=0; i<numOfThisPart2; ++i) {
-		s_key[i] = d_key2[i+startPos2];
-	}*/
-	/*__syncthreads();
-	if (tx < numOfThisPart2) {
-		s_key[tx] = d_key2[startPos2+tx];
-	}*/
 	__syncthreads();
-
 	// each thread is now responsible for each element in the bucket.
 	if (tx>=numOfThisPart1) {
 		return;
 	}
 	int result_tmp = -1;
-	//if (tx<numOfThisPart1) {
 	int d_key_tmp = d_key1[startPos1+tx];
-	//}
 
 	// for each element in bucket 1, search for matching element in bucket 2
 	for (int i=0; i<numOfThisPart2; ++i) {
-		//if (tx<numOfThisPart1) {
 		if (d_key_tmp == s_key[i]) {
 			result_tmp = startPos2+i;
 		}
-
-		//}
 	}
 	d_result[startPos1+tx] = result_tmp;
 
