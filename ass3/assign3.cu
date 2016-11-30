@@ -245,17 +245,18 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	//	return;
 	//}
   // since input size can be larger than the number of threads....
-  for (int i=tx; i<numOfThisPart1; i = i+bx) {
+  for (int i=tx; i<numOfThisPart1; i+=bx) {
 
-  	int result_tmp = -1;
   	int d_key_tmp = d_key1[startPos1+i];
+
+    int d_result[startPos1+i] = -1;
     // for each element in bucket 1, search for matching element in bucket 2
     for (int j=0; i<numOfThisPart2; ++j) {
   		if (d_key_tmp == s_key[j]) {
-  			result_tmp = startPos2+j;
+  			d_result[startPos1+i] = startPos2+j;
+        break;
   		}
   	}
-  	d_result[startPos1+i] = result_tmp;
   }
 
 }
