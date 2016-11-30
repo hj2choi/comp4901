@@ -232,13 +232,10 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 		}
 		numOfThisPart1 = endPos1 - startPos1;
 		numOfThisPart2 = endPos2 - startPos2;
-
+    for (int i=0; i<numOfThisPart2; ++i) {
+      s_key[i] = d_key2[startPos2+i];
+    }
 	}
-  __syncthreads();
-  // load each buckets of array 2 into shared memory and synchronize
-  for (int i=tx; i<numOfThisPart2; i+=bx) {
-    s_key[i] = d_key2[startPos2+i];
-  }
 	__syncthreads();
 	// each thread is now responsible for each element in the bucket.
 	//if (tx>=numOfThisPart1) {
@@ -249,7 +246,7 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 
   	int d_key_tmp = d_key1[startPos1+i];
 
-    int d_result[startPos1+i] = -1;
+    d_result[startPos1+i] = -1;
     // for each element in bucket 1, search for matching element in bucket 2
     for (int j=0; i<numOfThisPart2; ++j) {
   		if (d_key_tmp == s_key[j]) {
