@@ -220,13 +220,14 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 
 	int tx = threadIdx.x;
 	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
-	int blockIdx = blockDim.x;
+	//int blockIdx = blockDim.x;
+  int blockIdx = blockIdx.x;
 
   int start1 = d_startPos1[blockIdx];
   int start2 = d_startPos2[blockIdx];
   int end1;
   int end2;
-  if (blockIdx+1==gridDim.x) {	// if we are looking at last bucket, endPosition is basically a length of array
+  if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
 		end1 = N1;
 		end2 = N2;
 	} else {	// else, endPos is startPos of next bucket
@@ -293,7 +294,19 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 
 void cpu_hashJoin(int *d_result, int *d_key1, float *d_value1, int *d_key2,
 		float *d_value2, int N1, int N2) {
-      
+  int *d_startPos1, *d_startPos2;
+  cudaMalloc(&d_startPos1, sizeof(int) * numPart);
+  cudaMalloc(&d_startPos2, sizeof(int) * numPart);
+  split(d_key1, d_value1, d_startPos1, N1);
+  split(d_key2, d_value2, d_startPos2, N2);
+
+
+  printf("executing hash join on cpu....");
+
+  // go through each bucket
+  /*for (int i=0; i<numPart; ++i) {
+
+  }*/
 }
 
 void hashJoin(int *d_result, int *d_key1, float *d_value1, int *d_key2,
