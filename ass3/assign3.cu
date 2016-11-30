@@ -221,18 +221,18 @@ void join(int d_result[], int d_key1[], float d_value1[], int d_key2[],
 	int tx = threadIdx.x;
 	int threadId = blockIdx.x*blockDim.x+threadIdx.x;
 	//int blockIdx = blockDim.x;
-  int blockIdx = blockIdx.x;
+  int bx = blockIdx.x;
 
-  int start1 = d_startPos1[blockIdx];
-  int start2 = d_startPos2[blockIdx];
+  int start1 = d_startPos1[bx];
+  int start2 = d_startPos2[bx];
   int end1;
   int end2;
-  if (blockIdx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
+  if (bx+1==numPart) {	// if we are looking at last bucket, endPosition is basically a length of array
 		end1 = N1;
 		end2 = N2;
 	} else {	// else, endPos is startPos of next bucket
-		end1 = d_startPos1[blockIdx+1];
-		end2 = d_startPos2[blockIdx+1];
+		end1 = d_startPos1[bx+1];
+		end2 = d_startPos2[bx+1];
 	}
 
   //int numOfThisPart2 = end2 - start2;
